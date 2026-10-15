@@ -1,0 +1,67 @@
+# Hệ điều hành (Operating System Files)
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Môi trường và cấu hình bảo mật (Environment & Secrets)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Docker & Dữ liệu Database (Docker & MongoDB Data/Dumps)
+data/
+db_data/
+mongo_data/
+*.rdb
+*.aof
+dump/
+*.archive
+
+# Nhật ký và tiến trình (Logs & Process)
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Trình soạn thảo & IDE (IDEs & Editors)
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Tùy chọn VS Code (bỏ ghi đè các cấu hình dùng chung nếu cần)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+*.sublime-project
+
+# Node.js / JavaScript (nếu có cài đặt thư viện sau này)
+node_modules/
+dist/
+build/
+.npm/
+.yarn/
+
+# File tạm và sao lưu (Temporary & Backup Files)
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
