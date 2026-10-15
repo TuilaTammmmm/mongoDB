@@ -61,6 +61,7 @@ Hệ thống tận dụng tối đa các thế mạnh vượt trội của **Mon
 
 ```text
 BTL_CSDLPT/
+├── .gitignore                          # Cấu hình bỏ qua các file tạm, logs, tài liệu txt/docx
 ├── docker/
 │   ├── docker-compose.yml              # Dựng cụm Sharded Cluster phân tán (ConfigSvr, Shard 1, Shard 2, Mongos)
 │   └── init-cluster.ps1                # Script PowerShell 1-click kích hoạt Replica Sets & nạp Shard vào Router
@@ -69,8 +70,6 @@ BTL_CSDLPT/
 │   ├── 02_seed_data.js                 # Nạp dữ liệu y tế mẫu thực tế cho 20 Collections
 │   ├── 03_setup_sharding.js            # Kích hoạt Sharding & cấu hình Zone Sharding (Chi nhánh HN & HCM)
 │   └── 04_advanced_queries.js          # 5 Aggregation Pipelines & Full-Text Search báo cáo dịch tễ/viện phí
-├── CAC_KY_THUAT_PHAN_TAN_DU_LIEU.txt   # Hướng dẫn chi tiết từng bước bằng code/lệnh cho 6 kỹ thuật phân tán
-├── HUONG_DAN_THUC_HANH_PHAN_TAN.txt    # Hướng dẫn thực hành phân tán trên 2 máy hoặc nhiều máy thật
 └── README.md                           # Bản thuyết minh đề tài & Hướng dẫn tổng quan
 ```
 
