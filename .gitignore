@@ -65,3 +65,9 @@ build/
 *.bak
 *.swp
 *~
+
+# Tài liệu văn bản không cần đẩy lên Git (Word & Text files)
+*.docx
+*.doc
+*.txt
+
