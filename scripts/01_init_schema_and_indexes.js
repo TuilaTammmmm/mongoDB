@@ -1,12 +1,12 @@
 /**
  * 01_init_schema_and_indexes.js
  * Script khởi tạo Schema Base với JSON Schema Validation & Chỉ mục (Indexes)
- * Hệ thống Quản lý Bệnh viện & Hồ sơ Y tế Điện tử Toàn diện (Full Enterprise HIS & EHR)
- * Bao gồm đầy đủ 20 COLLECTIONS chuẩn bệnh viện đa khoa quốc tế
- * Chạy trên mongosh: mongosh hospital_ehr_db < 01_init_schema_and_indexes.js
+ * Hệ thống Quản trị & Điều phối Vật tư Doanh nghiệp Phân tán (Distributed Materials & Warehouse Management System - WMS)
+ * Bao gồm đầy đủ 20 COLLECTIONS chuẩn chuỗi cung ứng và quản lý kho bãi đa chi nhánh
+ * Chạy trên mongosh: mongosh material_inventory_db < 01_init_schema_and_indexes.js
  */
 
-const dbName = "hospital_ehr_db";
+const dbName = "material_inventory_db";
 const dbInstance = db.getSiblingDB(dbName);
 
 print(`======================================================================`);
@@ -33,417 +33,429 @@ function createValidatedCollection(colName, validatorSchema) {
 }
 
 // -------------------------------------------------------------
-// NHÓM 1: QUẢN TRỊ BỆNH NHÂN & ĐÓN TIẾP (4 Collections)
+// NHÓM 1: DANH MỤC VẬT TƯ & CƠ SỞ KHO BÃI (4 Collections)
 // -------------------------------------------------------------
 
-// 1. PATIENTS (Hồ sơ Bệnh nhân)
-createValidatedCollection("patients", {
+// 1. MATERIALS (Danh mục Vật tư - Lược đồ Đa hình Polymorphic Schema)
+createValidatedCollection("materials", {
   bsonType: "object",
-  required: ["patient_code", "national_id", "full_name", "dob", "gender", "registered_branch"],
+  required: ["material_code", "name", "category_code", "unit", "specifications"],
   properties: {
-    patient_code: { bsonType: "string" },
-    national_id: { bsonType: "string", pattern: "^[0-9]{12}$" },
-    full_name: { bsonType: "string" },
-    dob: { bsonType: "date" },
-    gender: { enum: ["MALE", "FEMALE", "OTHER"] },
-    phone: { bsonType: "string" },
-    registered_branch: { enum: ["HN", "HCM", "DN"] },
-    blood_type: { enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
-    allergies: { bsonType: "array" }
-  }
-});
-
-// 2. APPOINTMENTS (Đặt lịch khám trực tuyến)
-createValidatedCollection("appointments", {
-  bsonType: "object",
-  required: ["appointment_code", "patient_id", "scheduled_date", "hospital_branch", "status"],
-  properties: {
-    appointment_code: { bsonType: "string" },
-    patient_id: { bsonType: "objectId" },
-    doctor_id: { bsonType: ["objectId", "null"] },
-    department_id: { bsonType: "objectId" },
-    scheduled_date: { bsonType: "date" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    status: { enum: ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"] }
-  }
-});
-
-// 3. VACCINATIONS (Quản lý Tiêm chủng & Vaccine)
-createValidatedCollection("vaccinations", {
-  bsonType: "object",
-  required: ["vaccination_code", "patient_id", "vaccine_name", "administered_date", "hospital_branch"],
-  properties: {
-    vaccination_code: { bsonType: "string" },
-    patient_id: { bsonType: "objectId" },
-    vaccine_name: { bsonType: "string" },
-    dose_number: { bsonType: "int" },
-    batch_number: { bsonType: "string" },
-    administered_date: { bsonType: "date" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    adverse_reaction: { bsonType: ["string", "null"] }
-  }
-});
-
-// 4. PATIENT_FEEDBACKS (Khảo sát Hài lòng & Ý kiến phản hồi)
-createValidatedCollection("patient_feedbacks", {
-  bsonType: "object",
-  required: ["patient_id", "hospital_branch", "rating_score", "created_at"],
-  properties: {
-    patient_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    rating_score: { bsonType: "int", minimum: 1, maximum: 5 },
-    category: { enum: ["DOCTOR_ATTITUDE", "WAIT_TIME", "FACILITIES", "CLEANLINESS", "GENERAL"] },
-    comment: { bsonType: "string" },
-    created_at: { bsonType: "date" }
-  }
-});
-
-// -------------------------------------------------------------
-// NHÓM 2: NHÂN SỰ & CƠ SỞ VẬT CHẤT (3 Collections)
-// -------------------------------------------------------------
-
-// 5. DEPARTMENTS (Khoa phòng)
-createValidatedCollection("departments", {
-  bsonType: "object",
-  required: ["dept_code", "name", "hospital_branch"],
-  properties: {
-    dept_code: { bsonType: "string" },
+    material_code: { bsonType: "string" },
     name: { bsonType: "string" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    total_beds: { bsonType: "int" },
-    available_beds: { bsonType: "int" }
-  }
-});
-
-// 6. DOCTORS (Bác sĩ & Nhân sự y tế)
-createValidatedCollection("doctors", {
-  bsonType: "object",
-  required: ["staff_code", "full_name", "department_id", "hospital_branch"],
-  properties: {
-    staff_code: { bsonType: "string" },
-    full_name: { bsonType: "string" },
-    title: { bsonType: "string" },
-    department_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    specialties: { bsonType: "array" },
+    category_code: { bsonType: "string" },
+    unit: { bsonType: "string" },
+    description: { bsonType: "string" },
+    specifications: { bsonType: "object" },
+    standard_price: { bsonType: ["double", "int", "long"] },
+    barcode: { bsonType: ["string", "null"] },
     is_active: { bsonType: "bool" }
   }
 });
 
-// 7. MEDICAL_EQUIPMENT (Trang thiết bị & Máy móc Y tế)
-createValidatedCollection("medical_equipment", {
+// 2. MATERIAL_CATEGORIES (Nhóm / Phân loại Vật tư)
+createValidatedCollection("material_categories", {
   bsonType: "object",
-  required: ["serial_number", "device_name", "department_id", "hospital_branch", "status"],
+  required: ["category_code", "name", "storage_condition"],
   properties: {
-    serial_number: { bsonType: "string" },
-    device_name: { bsonType: "string" },
-    manufacturer: { bsonType: "string" },
-    department_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    status: { enum: ["OPERATIONAL", "UNDER_MAINTENANCE", "DECOMMISSIONED", "MALFUNCTIONING"] },
-    last_maintenance_date: { bsonType: "date" },
-    next_maintenance_date: { bsonType: "date" }
+    category_code: { bsonType: "string" },
+    name: { bsonType: "string" },
+    description: { bsonType: "string" },
+    storage_condition: { enum: ["NORMAL", "COLD_STORAGE", "HAZARDOUS", "DRY_VENTILATED"] }
+  }
+});
+
+// 3. WAREHOUSES (Danh mục Kho bãi theo Chi nhánh Vùng miền)
+createValidatedCollection("warehouses", {
+  bsonType: "object",
+  required: ["warehouse_code", "name", "branch", "address", "manager"],
+  properties: {
+    warehouse_code: { bsonType: "string" },
+    name: { bsonType: "string" },
+    branch: { enum: ["HN", "HCM", "DN"] },
+    address: { bsonType: "string" },
+    manager: { bsonType: "string" },
+    capacity_sqm: { bsonType: ["int", "double"] },
+    is_active: { bsonType: "bool" }
+  }
+});
+
+// 4. STORAGE_LOCATIONS (Vị trí lưu trữ: Dãy, Kệ, Ngăn trong Kho)
+createValidatedCollection("storage_locations", {
+  bsonType: "object",
+  required: ["location_code", "warehouse_code", "aisle", "rack", "bin"],
+  properties: {
+    location_code: { bsonType: "string" },
+    warehouse_code: { bsonType: "string" },
+    aisle: { bsonType: "string" },
+    rack: { bsonType: "int" },
+    bin: { bsonType: "int" },
+    max_weight_kg: { bsonType: ["int", "double"] },
+    is_occupied: { bsonType: "bool" }
   }
 });
 
 // -------------------------------------------------------------
-// NHÓM 3: KHÁM CHỮA BỆNH & LÂM SÀNG (4 Collections)
+// NHÓM 2: ĐỐI TÁC CUNG ỨNG & MUA HÀNG (4 Collections)
 // -------------------------------------------------------------
 
-// 8. ENCOUNTERS (Bệnh án Khám bệnh - Core Polymorphic Sharded Collection)
-createValidatedCollection("encounters", {
+// 5. SUPPLIERS (Nhà cung cấp Vật tư)
+createValidatedCollection("suppliers", {
   bsonType: "object",
-  required: ["encounter_code", "patient_id", "hospital_branch", "admission_time", "status"],
-  properties: {
-    encounter_code: { bsonType: "string" },
-    patient_id: { bsonType: "objectId" },
-    doctor_id: { bsonType: "objectId" },
-    department_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    encounter_type: { enum: ["OUTPATIENT", "INPATIENT", "EMERGENCY"] },
-    admission_time: { bsonType: "date" },
-    discharge_time: { bsonType: ["date", "null"] },
-    reason_for_visit: { bsonType: "string" },
-    vital_signs: { bsonType: "object" },
-    specialized_examination: { bsonType: "object" },
-    diagnosis: { bsonType: "object" },
-    status: { enum: ["IN_PROGRESS", "COMPLETED", "TRANSFERRED", "CANCELLED"] }
-  }
-});
-
-// 9. LAB_TESTS (Xét nghiệm Cận lâm sàng & LIS)
-createValidatedCollection("lab_tests", {
-  bsonType: "object",
-  required: ["test_code", "encounter_id", "patient_id", "hospital_branch", "status"],
-  properties: {
-    test_code: { bsonType: "string" },
-    encounter_id: { bsonType: "objectId" },
-    patient_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    test_category: { bsonType: "string" },
-    parameters: { bsonType: "array" },
-    status: { enum: ["ORDERED", "IN_PROCESS", "VERIFIED", "CANCELLED"] }
-  }
-});
-
-// 10. SURGICAL_OPERATIONS (Phẫu thuật & Ca mổ / Phòng mổ)
-createValidatedCollection("surgical_operations", {
-  bsonType: "object",
-  required: ["surgery_code", "encounter_id", "patient_id", "hospital_branch", "lead_surgeon_id", "status"],
-  properties: {
-    surgery_code: { bsonType: "string" },
-    encounter_id: { bsonType: "objectId" },
-    patient_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    lead_surgeon_id: { bsonType: "objectId" },
-    operating_room: { bsonType: "string" },
-    procedure_name: { bsonType: "string" },
-    anesthesia_type: { enum: ["GENERAL", "SPINAL", "LOCAL", "EPIDURAL"] },
-    start_time: { bsonType: "date" },
-    end_time: { bsonType: ["date", "null"] },
-    status: { enum: ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "POST_OP_RECOVERY", "CANCELLED"] }
-  }
-});
-
-// 11. PATIENT_VITALS_TELEMETRY (Giám sát Sinh hiệu ICU Thời gian thực)
-createValidatedCollection("patient_vitals_telemetry", {
-  bsonType: "object",
-  required: ["patient_id", "hospital_branch", "recorded_at"],
-  properties: {
-    patient_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    bed_number: { bsonType: "string" },
-    recorded_at: { bsonType: "date" },
-    heart_rate_bpm: { bsonType: "number" },
-    spO2_percent: { bsonType: "number" },
-    mean_arterial_pressure: { bsonType: "number" },
-    respiratory_rate: { bsonType: "number" },
-    is_alert_triggered: { bsonType: "bool" }
-  }
-});
-
-// -------------------------------------------------------------
-// NHÓM 4: ĐIỀU TRỊ NỘI TRÚ & CẤP CỨU (3 Collections)
-// -------------------------------------------------------------
-
-// 12. INPATIENT_ADMISSIONS (Điều trị Nội trú & Buồng bệnh)
-createValidatedCollection("inpatient_admissions", {
-  bsonType: "object",
-  required: ["admission_code", "patient_id", "department_id", "hospital_branch", "room_number", "bed_number", "admission_date", "status"],
-  properties: {
-    admission_code: { bsonType: "string" },
-    patient_id: { bsonType: "objectId" },
-    department_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    room_number: { bsonType: "string" },
-    bed_number: { bsonType: "string" },
-    admission_date: { bsonType: "date" },
-    discharge_date: { bsonType: ["date", "null"] },
-    status: { enum: ["CURRENTLY_ADMITTED", "DISCHARGED", "TRANSFERRED"] }
-  }
-});
-
-// 13. BLOOD_BANK (Ngân hàng Máu & Tiếp nhận truyền máu)
-createValidatedCollection("blood_bank", {
-  bsonType: "object",
-  required: ["unit_bag_code", "blood_group", "volume_ml", "hospital_branch", "status", "expiry_date"],
-  properties: {
-    unit_bag_code: { bsonType: "string" },
-    blood_group: { enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
-    component_type: { enum: ["WHOLE_BLOOD", "PACKED_RBC", "PLATELETS", "FRESH_FROZEN_PLASMA"] },
-    volume_ml: { bsonType: "int" },
-    collected_date: { bsonType: "date" },
-    expiry_date: { bsonType: "date" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    status: { enum: ["AVAILABLE", "RESERVED", "TRANSFUSED", "DISCARDED"] }
-  }
-});
-
-// 14. HOSPITAL_TRANSFERS (Chuyển viện & Cấp cứu 115)
-createValidatedCollection("hospital_transfers", {
-  bsonType: "object",
-  required: ["transfer_code", "patient_id", "source_branch", "target_hospital", "transfer_time", "status"],
-  properties: {
-    transfer_code: { bsonType: "string" },
-    patient_id: { bsonType: "objectId" },
-    source_branch: { enum: ["HN", "HCM", "DN"] },
-    target_hospital: { bsonType: "string" },
-    ambulance_plate: { bsonType: "string" },
-    transfer_reason: { bsonType: "string" },
-    transfer_time: { bsonType: "date" },
-    status: { enum: ["EN_ROUTE", "DELIVERED", "CANCELLED"] }
-  }
-});
-
-// -------------------------------------------------------------
-// NHÓM 5: DƯỢC PHẨM & VẬT TƯ (3 Collections)
-// -------------------------------------------------------------
-
-// 15. PHARMACY_INVENTORY (Kho Dược & Tồn kho theo chi nhánh - Sharded Collection)
-createValidatedCollection("pharmacy_inventory", {
-  bsonType: "object",
-  required: ["drug_code", "brand_name", "hospital_branch", "price_per_unit", "stock_quantity"],
-  properties: {
-    drug_code: { bsonType: "string" },
-    brand_name: { bsonType: "string" },
-    active_ingredient: { bsonType: "string" },
-    unit: { bsonType: "string" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    price_per_unit: { bsonType: "number" },
-    stock_quantity: { bsonType: "int" },
-    warning_threshold: { bsonType: "int" }
-  }
-});
-
-// 16. PRESCRIPTIONS (Đơn thuốc & Cấp phát quầy dược)
-createValidatedCollection("prescriptions", {
-  bsonType: "object",
-  required: ["prescription_code", "encounter_id", "patient_id", "hospital_branch", "total_amount"],
-  properties: {
-    prescription_code: { bsonType: "string" },
-    encounter_id: { bsonType: "objectId" },
-    patient_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    items: { bsonType: "array" },
-    total_amount: { bsonType: "number" },
-    dispensing_status: { enum: ["PENDING", "DISPENSED", "CANCELLED"] }
-  }
-});
-
-// 17. MEDICATION_SUPPLIERS (Nhà cung cấp Dược & Hợp đồng Dược phẩm)
-createValidatedCollection("medication_suppliers", {
-  bsonType: "object",
-  required: ["supplier_code", "company_name", "tax_id", "contact_phone"],
+  required: ["supplier_code", "company_name", "tax_id", "phone", "email"],
   properties: {
     supplier_code: { bsonType: "string" },
     company_name: { bsonType: "string" },
-    tax_id: { bsonType: "string" },
-    contact_phone: { bsonType: "string" },
+    tax_id: { bsonType: "string", pattern: "^[0-9]{10,13}$" },
+    phone: { bsonType: "string" },
+    email: { bsonType: "string" },
     address: { bsonType: "string" },
-    rating_score: { bsonType: "number" },
-    contract_valid_until: { bsonType: "date" }
+    rating_score: { bsonType: ["double", "int"] }
+  }
+});
+
+// 6. PURCHASE_ORDERS (Đơn đặt mua vật tư từ Nhà cung cấp)
+createValidatedCollection("purchase_orders", {
+  bsonType: "object",
+  required: ["po_code", "supplier_id", "warehouse_branch", "order_date", "total_amount", "status"],
+  properties: {
+    po_code: { bsonType: "string" },
+    supplier_id: { bsonType: "objectId" },
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    order_date: { bsonType: "date" },
+    expected_delivery_date: { bsonType: "date" },
+    total_amount: { bsonType: ["double", "int", "long"] },
+    items: { bsonType: "array" },
+    status: { enum: ["DRAFT", "APPROVED", "DELIVERED", "CANCELLED"] }
+  }
+});
+
+// 7. SUPPLIER_CONTRACTS (Hợp đồng nguyên tắc cung ứng)
+createValidatedCollection("supplier_contracts", {
+  bsonType: "object",
+  required: ["contract_code", "supplier_id", "start_date", "end_date", "status"],
+  properties: {
+    contract_code: { bsonType: "string" },
+    supplier_id: { bsonType: "objectId" },
+    start_date: { bsonType: "date" },
+    end_date: { bsonType: "date" },
+    contract_value: { bsonType: ["double", "int", "long"] },
+    payment_terms: { bsonType: "string" },
+    status: { enum: ["ACTIVE", "EXPIRED", "TERMINATED"] }
+  }
+});
+
+// 8. SUPPLIER_EVALUATIONS (Đánh giá hiệu suất Nhà cung cấp SLA)
+createValidatedCollection("supplier_evaluations", {
+  bsonType: "object",
+  required: ["supplier_id", "period", "quality_score", "delivery_score", "overall_score"],
+  properties: {
+    supplier_id: { bsonType: "objectId" },
+    period: { bsonType: "string" },
+    quality_score: { bsonType: ["double", "int"], minimum: 0, maximum: 100 },
+    delivery_score: { bsonType: ["double", "int"], minimum: 0, maximum: 100 },
+    overall_score: { bsonType: ["double", "int"], minimum: 0, maximum: 100 },
+    comments: { bsonType: "string" },
+    evaluated_at: { bsonType: "date" }
   }
 });
 
 // -------------------------------------------------------------
-// NHÓM 6: TÀI CHÍNH, BẢO HIỂM & BẢO MẬT (3 Collections)
+// NHÓM 3: GIAO DỊCH NHẬP - XUẤT - ĐIỀU CHUYỂN (Sharded - 4 Collections)
 // -------------------------------------------------------------
 
-// 18. INVOICES (Hóa đơn Viện phí & Quyết toán)
-createValidatedCollection("invoices", {
+// 9. GOODS_RECEIPTS ⭐ (Phiếu Nhập kho Vật tư - Sharded Collection)
+createValidatedCollection("goods_receipts", {
   bsonType: "object",
-  required: ["invoice_code", "encounter_id", "patient_id", "hospital_branch", "total_gross_amount", "payment_status"],
+  required: ["receipt_code", "warehouse_branch", "warehouse_code", "receipt_date", "items", "total_amount", "status"],
   properties: {
-    invoice_code: { bsonType: "string" },
-    encounter_id: { bsonType: "objectId" },
-    patient_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    total_gross_amount: { bsonType: "number" },
-    insurance_coverage_amount: { bsonType: "number" },
-    patient_copay_amount: { bsonType: "number" },
-    payment_status: { enum: ["UNPAID", "PAID", "REFUNDED"] }
+    receipt_code: { bsonType: "string" },
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    warehouse_code: { bsonType: "string" },
+    supplier_id: { bsonType: ["objectId", "null"] },
+    po_code: { bsonType: ["string", "null"] },
+    receipt_date: { bsonType: "date" },
+    items: {
+      bsonType: "array",
+      minItems: 1,
+      items: {
+        bsonType: "object",
+        required: ["material_code", "quantity", "unit_price", "amount"],
+        properties: {
+          material_code: { bsonType: "string" },
+          batch_number: { bsonType: "string" },
+          quantity: { bsonType: ["int", "double"] },
+          unit_price: { bsonType: ["int", "double", "long"] },
+          amount: { bsonType: ["int", "double", "long"] }
+        }
+      }
+    },
+    total_amount: { bsonType: ["int", "double", "long"] },
+    receiver: { bsonType: "string" },
+    status: { enum: ["PENDING", "COMPLETED", "REJECTED"] }
   }
 });
 
-// 19. INSURANCE_CLAIMS (Hồ sơ Giám định & Đề nghị BHYT Chi trả)
-createValidatedCollection("insurance_claims", {
+// 10. GOODS_ISSUES ⭐ (Phiếu Xuất kho Vật tư - Sharded Collection)
+createValidatedCollection("goods_issues", {
   bsonType: "object",
-  required: ["claim_code", "invoice_id", "patient_id", "hospital_branch", "claimed_amount", "status"],
+  required: ["issue_code", "warehouse_branch", "warehouse_code", "issue_date", "items", "purpose", "status"],
   properties: {
-    claim_code: { bsonType: "string" },
-    invoice_id: { bsonType: "objectId" },
-    patient_id: { bsonType: "objectId" },
-    hospital_branch: { enum: ["HN", "HCM", "DN"] },
-    claimed_amount: { bsonType: "number" },
-    approved_amount: { bsonType: "number" },
-    rejection_reason: { bsonType: ["string", "null"] },
-    submission_date: { bsonType: "date" },
-    status: { enum: ["SUBMITTED", "APPROVED", "REJECTED", "APPEALED"] }
+    issue_code: { bsonType: "string" },
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    warehouse_code: { bsonType: "string" },
+    project_id: { bsonType: ["objectId", "null"] },
+    request_code: { bsonType: ["string", "null"] },
+    issue_date: { bsonType: "date" },
+    items: {
+      bsonType: "array",
+      minItems: 1,
+      items: {
+        bsonType: "object",
+        required: ["material_code", "quantity"],
+        properties: {
+          material_code: { bsonType: "string" },
+          batch_number: { bsonType: "string" },
+          quantity: { bsonType: ["int", "double"] }
+        }
+      }
+    },
+    purpose: { bsonType: "string" },
+    issuer: { bsonType: "string" },
+    recipient: { bsonType: "string" },
+    status: { enum: ["APPROVED", "DISPATCHED", "DELIVERED", "CANCELLED"] }
   }
 });
 
-// 20. MEDICAL_AUDIT_LOGS (Nhật ký Truy vết Bảo mật Hồ sơ - Chuẩn HIPAA)
-createValidatedCollection("medical_audit_logs", {
+// 11. STOCK_TRANSFERS (Phiếu Điều chuyển Vật tư Liên kho Giữa các Miền)
+createValidatedCollection("stock_transfers", {
   bsonType: "object",
-  required: ["timestamp", "action", "staff_id"],
+  required: ["transfer_code", "from_branch", "to_branch", "from_warehouse", "to_warehouse", "items", "status"],
   properties: {
-    timestamp: { bsonType: "date" },
-    action: { enum: ["READ_RECORD", "UPDATE_DIAGNOSIS", "PRESCRIBE_DRUG", "DISPENSE_DRUG", "EXPORT_REPORT", "DELETE_ENTRY"] },
-    staff_id: { bsonType: "objectId" },
-    patient_id: { bsonType: ["objectId", "null"] },
-    encounter_id: { bsonType: ["objectId", "null"] }
+    transfer_code: { bsonType: "string" },
+    from_branch: { enum: ["HN", "HCM", "DN"] },
+    to_branch: { enum: ["HN", "HCM", "DN"] },
+    from_warehouse: { bsonType: "string" },
+    to_warehouse: { bsonType: "string" },
+    transfer_date: { bsonType: "date" },
+    items: { bsonType: "array" },
+    transport_method: { bsonType: "string" },
+    status: { enum: ["IN_TRANSIT", "RECEIVED", "CANCELLED"] }
   }
 });
 
+// 12. MATERIAL_RETURNS (Phiếu Hoàn trả Vật tư Thừa / Hư hỏng từ Công trình)
+createValidatedCollection("material_returns", {
+  bsonType: "object",
+  required: ["return_code", "warehouse_branch", "warehouse_code", "return_date", "items", "reason"],
+  properties: {
+    return_code: { bsonType: "string" },
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    warehouse_code: { bsonType: "string" },
+    project_id: { bsonType: ["objectId", "null"] },
+    return_date: { bsonType: "date" },
+    items: { bsonType: "array" },
+    reason: { enum: ["EXCESS_MATERIAL", "DEFECTIVE", "WRONG_SPECIFICATION"] },
+    accepted_by: { bsonType: "string" }
+  }
+});
+
+// -------------------------------------------------------------
+// NHÓM 4: TỒN KHO, LÔ HÀNG & KIỂM ĐỊNH CHẤT LƯỢNG (Sharded - 4 Collections)
+// -------------------------------------------------------------
+
+// 13. INVENTORY_STOCKS ⭐ (Tồn kho Vật tư theo Chi nhánh - Sharded Collection)
+createValidatedCollection("inventory_stocks", {
+  bsonType: "object",
+  required: ["warehouse_branch", "warehouse_code", "material_code", "quantity", "min_threshold"],
+  properties: {
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    warehouse_code: { bsonType: "string" },
+    material_code: { bsonType: "string" },
+    quantity: { bsonType: ["int", "double"] },
+    allocated_quantity: { bsonType: ["int", "double"] },
+    available_quantity: { bsonType: ["int", "double"] },
+    min_threshold: { bsonType: ["int", "double"] },
+    max_threshold: { bsonType: ["int", "double"] },
+    unit: { bsonType: "string" },
+    last_updated: { bsonType: "date" }
+  }
+});
+
+// 14. MATERIAL_BATCHES (Quản lý Lô sản xuất, Hạn sử dụng, CO/CQ)
+createValidatedCollection("material_batches", {
+  bsonType: "object",
+  required: ["batch_number", "material_code", "mfg_date", "inspection_status"],
+  properties: {
+    batch_number: { bsonType: "string" },
+    material_code: { bsonType: "string" },
+    mfg_date: { bsonType: "date" },
+    exp_date: { bsonType: ["date", "null"] },
+    co_cq_number: { bsonType: "string" },
+    origin_country: { bsonType: "string" },
+    inspection_status: { enum: ["PASSED", "PENDING_QC", "REJECTED"] }
+  }
+});
+
+// 15. STOCKTAKES (Biên bản Kiểm kê & Đối soát Số lượng Thực tế)
+createValidatedCollection("stocktakes", {
+  bsonType: "object",
+  required: ["stocktake_code", "warehouse_branch", "warehouse_code", "check_date", "items", "status"],
+  properties: {
+    stocktake_code: { bsonType: "string" },
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    warehouse_code: { bsonType: "string" },
+    check_date: { bsonType: "date" },
+    auditor: { bsonType: "string" },
+    items: {
+      bsonType: "array",
+      items: {
+        bsonType: "object",
+        required: ["material_code", "system_qty", "actual_qty", "variance"],
+        properties: {
+          material_code: { bsonType: "string" },
+          system_qty: { bsonType: ["int", "double"] },
+          actual_qty: { bsonType: ["int", "double"] },
+          variance: { bsonType: ["int", "double"] },
+          explanation: { bsonType: "string" }
+        }
+      }
+    },
+    status: { enum: ["BALANCED", "DISCREPANCY_FOUND", "ADJUSTED"] }
+  }
+});
+
+// 16. QUALITY_INSPECTIONS (Biên bản Kiểm định Chất lượng KCS / QC)
+createValidatedCollection("quality_inspections", {
+  bsonType: "object",
+  required: ["inspection_code", "material_code", "batch_number", "sample_size", "result"],
+  properties: {
+    inspection_code: { bsonType: "string" },
+    material_code: { bsonType: "string" },
+    batch_number: { bsonType: "string" },
+    sample_size: { bsonType: ["int", "double"] },
+    defect_count: { bsonType: ["int", "double"] },
+    test_criteria: { bsonType: "array" },
+    result: { enum: ["PASSED", "REJECTED", "CONDITIONAL_APPROVAL"] },
+    inspector: { bsonType: "string" },
+    inspected_date: { bsonType: "date" }
+  }
+});
+
+// -------------------------------------------------------------
+// NHÓM 5: YÊU CẦU CẤP PHÁT & DỰ ÁN CÔNG TRÌNH (2 Collections)
+// -------------------------------------------------------------
+
+// 17. MATERIAL_REQUESTS (Phiếu Đề xuất Cấp phát Vật tư Công trường)
+createValidatedCollection("material_requests", {
+  bsonType: "object",
+  required: ["request_code", "project_id", "warehouse_branch", "urgency", "items", "status"],
+  properties: {
+    request_code: { bsonType: "string" },
+    project_id: { bsonType: "objectId" },
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    urgency: { enum: ["LOW", "NORMAL", "HIGH", "EMERGENCY"] },
+    items: { bsonType: "array" },
+    requested_by: { bsonType: "string" },
+    requested_date: { bsonType: "date" },
+    status: { enum: ["PENDING", "APPROVED", "PARTIALLY_FULFILLED", "FULFILLED", "REJECTED"] }
+  }
+});
+
+// 18. PROJECTS_DEPARTMENTS (Dự án, Công trình, Phân xưởng Tiêu thụ)
+createValidatedCollection("projects_departments", {
+  bsonType: "object",
+  required: ["project_code", "name", "manager", "branch", "status"],
+  properties: {
+    project_code: { bsonType: "string" },
+    name: { bsonType: "string" },
+    department_type: { enum: ["CONSTRUCTION", "PRODUCTION", "R_AND_D", "MAINTENANCE"] },
+    manager: { bsonType: "string" },
+    branch: { enum: ["HN", "HCM", "DN"] },
+    allocated_budget: { bsonType: ["int", "double", "long"] },
+    status: { enum: ["PLANNING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"] }
+  }
+});
+
+// -------------------------------------------------------------
+// NHÓM 6: ĐỊNH GIÁ TÀI CHÍNH & NHẬT KÝ KIỂM TOÁN (2 Collections)
+// -------------------------------------------------------------
+
+// 19. INVENTORY_VALUATIONS (Báo cáo Định giá Vốn Hàng tồn kho)
+createValidatedCollection("inventory_valuations", {
+  bsonType: "object",
+  required: ["valuation_code", "period", "warehouse_branch", "total_stock_value", "valuation_method"],
+  properties: {
+    valuation_code: { bsonType: "string" },
+    period: { bsonType: "string" },
+    warehouse_branch: { enum: ["HN", "HCM", "DN"] },
+    total_stock_value: { bsonType: ["double", "long", "int"] },
+    valuation_method: { enum: ["FIFO", "WEIGHTED_AVERAGE", "SPECIFIC_IDENTIFICATION"] },
+    created_at: { bsonType: "date" }
+  }
+});
+
+// 20. MATERIAL_AUDIT_LOGS (Nhật ký Truy vết Hoạt động Kho & Tự hủy bằng TTL Index)
+createValidatedCollection("material_audit_logs", {
+  bsonType: "object",
+  required: ["log_code", "action", "actor", "collection_name", "timestamp"],
+  properties: {
+    log_code: { bsonType: "string" },
+    action: { enum: ["RECEIVE", "ISSUE", "TRANSFER", "ADJUST_STOCK", "DELETE", "PRICE_UPDATE"] },
+    actor: { bsonType: "string" },
+    collection_name: { bsonType: "string" },
+    document_id: { bsonType: "string" },
+    details: { bsonType: "object" },
+    timestamp: { bsonType: "date" }
+  }
+});
+
+print(`[2/3] Thiết lập các loại Chỉ mục (Indexes) Tối ưu Truy vấn & Phân mảnh...`);
+
+// Chỉ mục Unique xác định danh mục
+dbInstance.materials.createIndex({ material_code: 1 }, { unique: true });
+dbInstance.warehouses.createIndex({ warehouse_code: 1 }, { unique: true });
+dbInstance.suppliers.createIndex({ supplier_code: 1 }, { unique: true });
+dbInstance.suppliers.createIndex({ tax_id: 1 }, { unique: true });
+dbInstance.purchase_orders.createIndex({ po_code: 1 }, { unique: true });
+dbInstance.storage_locations.createIndex({ warehouse_code: 1, location_code: 1 }, { unique: true });
+
+// Chỉ mục Phân mảnh (Shard Key Compound Indexes)
+dbInstance.inventory_stocks.createIndex({ warehouse_branch: 1, material_code: 1 }, { unique: true });
+dbInstance.goods_receipts.createIndex({ warehouse_branch: 1, receipt_code: 1 });
+dbInstance.goods_issues.createIndex({ warehouse_branch: 1, issue_code: 1 });
+
+// Chỉ mục Multikey & Compound tối ưu hóa tìm kiếm đơn hàng và cấp phát
+dbInstance.goods_receipts.createIndex({ "items.material_code": 1 });
+dbInstance.goods_issues.createIndex({ project_id: 1, issue_date: -1 });
+dbInstance.purchase_orders.createIndex({ supplier_id: 1, status: 1 });
+dbInstance.stock_transfers.createIndex({ from_branch: 1, to_branch: 1, status: 1 });
+
+// Full-Text Search Index (Tìm kiếm vật tư theo tên, mô tả, thông số tiêu chuẩn)
+dbInstance.materials.createIndex({
+  name: "text",
+  description: "text",
+  "specifications.standard": "text",
+  "specifications.material": "text"
+}, {
+  default_language: "none",
+  name: "idx_materials_text_search"
+});
+
+// Full-Text Search Index cho mục đích xuất kho
+dbInstance.goods_issues.createIndex({
+  purpose: "text"
+}, {
+  default_language: "none",
+  name: "idx_goods_issues_purpose_text"
+});
+
+// TTL Index (Time-To-Live Index): Tự động xóa log kiểm toán sau 365 ngày (31,536,000 giây)
+dbInstance.material_audit_logs.createIndex(
+  { timestamp: 1 },
+  { expireAfterSeconds: 31536000, name: "idx_audit_logs_ttl_365days" }
+);
+
 print(`======================================================================`);
-print(`[2/3] Đang khởi tạo Indexes tối ưu hiệu năng cho cả 20 Collections...`);
-print(`======================================================================`);
-
-// Nhóm 1: Bệnh nhân
-dbInstance.patients.createIndex({ patient_code: 1 }, { unique: true });
-dbInstance.patients.createIndex({ national_id: 1 }, { unique: true });
-dbInstance.patients.createIndex({ registered_branch: 1, created_at: -1 });
-
-dbInstance.appointments.createIndex({ appointment_code: 1 }, { unique: true });
-dbInstance.appointments.createIndex({ doctor_id: 1, scheduled_date: 1 });
-dbInstance.appointments.createIndex({ patient_id: 1, scheduled_date: 1 });
-
-dbInstance.vaccinations.createIndex({ vaccination_code: 1 }, { unique: true });
-dbInstance.vaccinations.createIndex({ patient_id: 1, vaccine_name: 1 });
-
-dbInstance.patient_feedbacks.createIndex({ hospital_branch: 1, rating_score: 1 });
-
-// Nhóm 2: Khoa phòng & Thiết bị
-dbInstance.departments.createIndex({ dept_code: 1 }, { unique: true });
-dbInstance.departments.createIndex({ hospital_branch: 1 });
-
-dbInstance.doctors.createIndex({ staff_code: 1 }, { unique: true });
-dbInstance.doctors.createIndex({ department_id: 1, hospital_branch: 1 });
-
-dbInstance.medical_equipment.createIndex({ serial_number: 1 }, { unique: true });
-dbInstance.medical_equipment.createIndex({ department_id: 1, status: 1 });
-
-// Nhóm 3: Khám lâm sàng
-dbInstance.encounters.createIndex({ encounter_code: 1 }, { unique: true });
-dbInstance.encounters.createIndex({ hospital_branch: 1, patient_id: 1 }); // Shard Key
-dbInstance.encounters.createIndex({ reason_for_visit: "text", "diagnosis.primary_name": "text" });
-
-dbInstance.lab_tests.createIndex({ test_code: 1 }, { unique: true });
-dbInstance.lab_tests.createIndex({ hospital_branch: 1, encounter_id: 1 });
-
-dbInstance.surgical_operations.createIndex({ surgery_code: 1 }, { unique: true });
-dbInstance.surgical_operations.createIndex({ lead_surgeon_id: 1, start_time: -1 });
-
-dbInstance.patient_vitals_telemetry.createIndex({ patient_id: 1, recorded_at: -1 });
-
-// Nhóm 4: Nội trú & Cấp cứu
-dbInstance.inpatient_admissions.createIndex({ admission_code: 1 }, { unique: true });
-dbInstance.inpatient_admissions.createIndex({ hospital_branch: 1, status: 1 });
-
-dbInstance.blood_bank.createIndex({ unit_bag_code: 1 }, { unique: true });
-dbInstance.blood_bank.createIndex({ blood_group: 1, hospital_branch: 1, status: 1 });
-
-dbInstance.hospital_transfers.createIndex({ transfer_code: 1 }, { unique: true });
-
-// Nhóm 5: Dược phẩm
-dbInstance.pharmacy_inventory.createIndex({ hospital_branch: 1, drug_code: 1 }, { unique: true });
-dbInstance.pharmacy_inventory.createIndex({ stock_quantity: 1 });
-
-dbInstance.prescriptions.createIndex({ prescription_code: 1 }, { unique: true });
-dbInstance.prescriptions.createIndex({ hospital_branch: 1, created_at: -1 });
-
-dbInstance.medication_suppliers.createIndex({ supplier_code: 1 }, { unique: true });
-
-// Nhóm 6: Tài chính & Audit
-dbInstance.invoices.createIndex({ invoice_code: 1 }, { unique: true });
-dbInstance.invoices.createIndex({ hospital_branch: 1, paid_at: -1 });
-
-dbInstance.insurance_claims.createIndex({ claim_code: 1 }, { unique: true });
-dbInstance.insurance_claims.createIndex({ invoice_id: 1 });
-
-dbInstance.medical_audit_logs.createIndex({ timestamp: 1 }, { expireAfterSeconds: 31536000 }); // TTL Index
-dbInstance.medical_audit_logs.createIndex({ patient_id: 1, timestamp: -1 });
-
-print(`======================================================================`);
-print(`[3/3] HOÀN TẤT KHỞI TẠO ĐẦY ĐỦ 20 COLLECTIONS & CHỈ MỤC CHO HỆ THỐNG!`);
+print(`[3/3] HOÀN TẤT KHỞI TẠO 20 COLLECTIONS, VALIDATOR & INDEXES THÀNH CÔNG!`);
 print(`======================================================================`);

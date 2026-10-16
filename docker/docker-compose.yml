@@ -1,40 +1,40 @@
 version: "3.8"
 
 services:
-  # 1. Config Server (Lưu Metadata phân mảnh của cụm Sharded Cluster)
+  # 1. Config Server (Lưu Metadata cấu hình và phân mảnh cụm Sharded Cluster)
   configsvr:
     image: mongo:6.0
-    container_name: ehr-configsvr
+    container_name: vattu-configsvr
     command: mongod --configsvr --replSet configReplSet --port 27019 --bind_ip_all
     ports:
       - "27019:27019"
     volumes:
       - config_data:/data/db
 
-  # 2. Shard 1 (Phụ trách Chi nhánh Bệnh viện Hà Nội - ZONE_HN)
+  # 2. Shard 1 (Phụ trách Tổng kho Vật tư Miền Bắc - Hà Nội - ZONE_HN)
   shard1:
     image: mongo:6.0
-    container_name: ehr-shard1
+    container_name: vattu-shard1
     command: mongod --shardsvr --replSet shard1ReplSet --port 27018 --bind_ip_all
     ports:
       - "27018:27018"
     volumes:
       - shard1_data:/data/db
 
-  # 3. Shard 2 (Phụ trách Chi nhánh Bệnh viện TP.HCM - ZONE_HCM)
+  # 3. Shard 2 (Phụ trách Tổng kho Vật tư Miền Nam - TP.HCM - ZONE_HCM)
   shard2:
     image: mongo:6.0
-    container_name: ehr-shard2
+    container_name: vattu-shard2
     command: mongod --shardsvr --replSet shard2ReplSet --port 27020 --bind_ip_all
     ports:
       - "27020:27020"
     volumes:
       - shard2_data:/data/db
 
-  # 4. Mongos (Query Router - Cổng tiếp nhận truy vấn duy nhất của hệ thống)
+  # 4. Mongos (Query Router - Cổng tiếp nhận và định tuyến truy vấn tập trung)
   mongos:
     image: mongo:6.0
-    container_name: ehr-mongos
+    container_name: vattu-mongos
     depends_on:
       - configsvr
       - shard1

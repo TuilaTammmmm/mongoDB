@@ -1,244 +1,523 @@
 /**
  * 02_seed_data.js
- * Script tạo dữ liệu mẫu thực tế, phong phú cho TOÀN BỘ 20 COLLECTIONS
- * Hệ thống Quản lý Bệnh viện & Hồ sơ Y tế Điện tử (Full Enterprise HIS & EHR)
- * Chạy trên mongosh: mongosh hospital_ehr_db < 02_seed_data.js
+ * Script nạp dữ liệu mẫu thực tế, phong phú cho TOÀN BỘ 20 COLLECTIONS
+ * Hệ thống Quản trị & Điều phối Vật tư Doanh nghiệp Phân tán (Distributed Materials & WMS)
+ * Chạy trên mongosh: mongosh material_inventory_db < 02_seed_data.js
  */
 
-const dbName = "hospital_ehr_db";
+const dbName = "material_inventory_db";
 const dbInstance = db.getSiblingDB(dbName);
 
 print(`======================================================================`);
-print(`[1/4] Làm sạch toàn bộ dữ liệu cũ trong 20 Collections...`);
+print(`[1/4] Làm sạch dữ liệu cũ trong toàn bộ 20 Collections...`);
 print(`======================================================================`);
 
 const allCollections = [
-  "patients", "appointments", "vaccinations", "patient_feedbacks",
-  "departments", "doctors", "medical_equipment",
-  "encounters", "lab_tests", "surgical_operations", "patient_vitals_telemetry",
-  "inpatient_admissions", "blood_bank", "hospital_transfers",
-  "pharmacy_inventory", "prescriptions", "medication_suppliers",
-  "invoices", "insurance_claims", "medical_audit_logs"
+  "materials", "material_categories", "warehouses", "storage_locations",
+  "suppliers", "purchase_orders", "supplier_contracts", "supplier_evaluations",
+  "goods_receipts", "goods_issues", "stock_transfers", "material_returns",
+  "inventory_stocks", "material_batches", "stocktakes", "quality_inspections",
+  "material_requests", "projects_departments", "inventory_valuations", "material_audit_logs"
 ];
 
 allCollections.forEach(col => dbInstance.getCollection(col).deleteMany({}));
 
-print(`[2/4] Tạo Nhà cung cấp, Khoa phòng, Bác sĩ & Thiết bị y tế...`);
+print(`[2/4] Nạp Danh mục Cơ sở: Nhà cung cấp, Kho bãi, Nhóm vật tư, Vị trí lưu trữ...`);
 
-// 1. MEDICATION_SUPPLIERS (Nhà cung cấp Dược)
-const sup1Id = new ObjectId();
-const sup2Id = new ObjectId();
-dbInstance.medication_suppliers.insertMany([
-  { _id: sup1Id, supplier_code: "SUP-SANOFI", company_name: "Tập đoàn Dược phẩm Sanofi Việt Nam", tax_id: "0300628120", contact_phone: "02838298526", address: "Quận 1, TP.HCM", rating_score: 4.9, contract_valid_until: new Date("2028-12-31") },
-  { _id: sup2Id, supplier_code: "SUP-TW1", company_name: "Công ty Cổ phần Dược phẩm Trung ương 1 (CPC1)", tax_id: "0100108920", contact_phone: "02438452331", address: "Đống Đa, Hà Nội", rating_score: 4.8, contract_valid_until: new Date("2027-10-30") }
-]);
+// 1. SUPPLIERS (Nhà cung cấp)
+const supHoaPhat = new ObjectId();
+const supCadivi = new ObjectId();
+const supVicem = new ObjectId();
+const supJotun = new ObjectId();
 
-// 2. DEPARTMENTS (Khoa phòng)
-const deptHN_TimMach = new ObjectId();
-const deptHN_TieuHoa = new ObjectId();
-const deptHN_HoiSuc = new ObjectId();
-const deptHCM_TimMach = new ObjectId();
-const deptHCM_Nhi = new ObjectId();
-
-dbInstance.departments.insertMany([
-  { _id: deptHN_TimMach, dept_code: "KTM-HN", name: "Khoa Tim Mạch", hospital_branch: "HN", location: { building: "Nhà A", floor: 3 }, total_beds: NumberInt(40), available_beds: NumberInt(6) },
-  { _id: deptHN_TieuHoa, dept_code: "KTH-HN", name: "Khoa Tiêu Hóa", hospital_branch: "HN", location: { building: "Nhà A", floor: 4 }, total_beds: NumberInt(35), available_beds: NumberInt(12) },
-  { _id: deptHN_HoiSuc, dept_code: "KICU-HN", name: "Khoa Hồi Sức Tích Cực (ICU)", hospital_branch: "HN", location: { building: "Nhà B", floor: 2 }, total_beds: NumberInt(20), available_beds: NumberInt(3) },
-  { _id: deptHCM_TimMach, dept_code: "KTM-HCM", name: "Khoa Tim Mạch", hospital_branch: "HCM", location: { building: "Khu 1", floor: 5 }, total_beds: NumberInt(50), available_beds: NumberInt(10) },
-  { _id: deptHCM_Nhi, dept_code: "KNHI-HCM", name: "Khoa Nhi", hospital_branch: "HCM", location: { building: "Khu 2", floor: 2 }, total_beds: NumberInt(60), available_beds: NumberInt(20) }
-]);
-
-// 3. DOCTORS (Bác sĩ)
-const bsTuan = new ObjectId();
-const bsLong = new ObjectId();
-const bsKhang = new ObjectId();
-const bsDung = new ObjectId();
-
-dbInstance.doctors.insertMany([
-  { _id: bsTuan, staff_code: "BS-HN-001", full_name: "PGS.TS. Trần Quốc Tuấn", title: "Bác sĩ CKII", department_id: deptHN_TimMach, hospital_branch: "HN", specialties: ["Can thiệp tim mạch"], is_active: true },
-  { _id: bsLong, staff_code: "BS-HN-002", full_name: "ThS.BS. Lê Hoàng Long", title: "Bác sĩ CKI", department_id: deptHN_TieuHoa, hospital_branch: "HN", specialties: ["Nội soi tiêu hóa"], is_active: true },
-  { _id: bsKhang, staff_code: "BS-HCM-001", full_name: "GS.TS. Vũ Đình Khang", title: "Bác sĩ CKII", department_id: deptHCM_TimMach, hospital_branch: "HCM", specialties: ["Phẫu thuật tim mạch"], is_active: true },
-  { _id: bsDung, staff_code: "BS-HCM-002", full_name: "ThS.BS. Đặng Thùy Dung", title: "Bác sĩ CKI", department_id: deptHCM_Nhi, hospital_branch: "HCM", specialties: ["Hô hấp nhi"], is_active: true }
-]);
-
-// 4. MEDICAL_EQUIPMENT (Trang thiết bị y tế)
-dbInstance.medical_equipment.insertMany([
-  { serial_number: "EQ-MRI-HN-01", device_name: "Hệ thống Cộng hưởng từ MRI 3.0 Tesla", manufacturer: "Siemens Healthineers", department_id: deptHN_TimMach, hospital_branch: "HN", status: "OPERATIONAL", last_maintenance_date: new Date("2026-08-01"), next_maintenance_date: new Date("2026-11-01") },
-  { serial_number: "EQ-VENT-HN-03", device_name: "Máy thở chức năng cao Hamilton-C6", manufacturer: "Hamilton Medical", department_id: deptHN_HoiSuc, hospital_branch: "HN", status: "OPERATIONAL", last_maintenance_date: new Date("2026-09-15"), next_maintenance_date: new Date("2026-12-15") },
-  { serial_number: "EQ-DSA-HCM-02", device_name: "Hệ thống Chụp mạch số hóa xóa nền DSA", manufacturer: "Philips Medical", department_id: deptHCM_TimMach, hospital_branch: "HCM", status: "OPERATIONAL", last_maintenance_date: new Date("2026-07-20"), next_maintenance_date: new Date("2026-10-20") }
-]);
-
-print(`[3/4] Tạo Kho Dược, Ngân hàng Máu, Bệnh nhân & Tiêm chủng...`);
-
-// 5. PHARMACY_INVENTORY (Kho Dược chi nhánh)
-const medAmlor = new ObjectId();
-const medNexium = new ObjectId();
-const medAspirin = new ObjectId();
-
-dbInstance.pharmacy_inventory.insertMany([
-  { _id: medAmlor, drug_code: "DRUG-AML-05", brand_name: "Amlor 5mg", active_ingredient: "Amlodipine", unit: "Viên", hospital_branch: "HN", price_per_unit: 6500, stock_quantity: NumberInt(5000), warning_threshold: NumberInt(500) },
-  { _id: medNexium, drug_code: "DRUG-NEX-40", brand_name: "Nexium 40mg", active_ingredient: "Esomeprazole", unit: "Viên", hospital_branch: "HN", price_per_unit: 23000, stock_quantity: NumberInt(2500), warning_threshold: NumberInt(300) },
-  { _id: medAspirin, drug_code: "DRUG-ASP-81", brand_name: "Aspirin 81mg", active_ingredient: "Acid Acetylsalicylic", unit: "Viên", hospital_branch: "HCM", price_per_unit: 2000, stock_quantity: NumberInt(8000), warning_threshold: NumberInt(1000) }
-]);
-
-// 6. BLOOD_BANK (Ngân hàng Máu)
-dbInstance.blood_bank.insertMany([
-  { unit_bag_code: "BB-HN-O-001", blood_group: "O+", component_type: "PACKED_RBC", volume_ml: NumberInt(350), collected_date: new Date("2026-10-01"), expiry_date: new Date("2026-11-12"), hospital_branch: "HN", status: "AVAILABLE" },
-  { unit_bag_code: "BB-HN-AB-002", blood_group: "AB+", component_type: "FRESH_FROZEN_PLASMA", volume_ml: NumberInt(250), collected_date: new Date("2026-09-20"), expiry_date: new Date("2027-09-20"), hospital_branch: "HN", status: "RESERVED" },
-  { unit_bag_code: "BB-HCM-O-003", blood_group: "O+", component_type: "PACKED_RBC", volume_ml: NumberInt(350), collected_date: new Date("2026-10-05"), expiry_date: new Date("2026-11-16"), hospital_branch: "HCM", status: "AVAILABLE" }
-]);
-
-// 7. PATIENTS (Bệnh nhân)
-const bnHung = new ObjectId();
-const bnLan = new ObjectId();
-const bnTri = new ObjectId();
-
-dbInstance.patients.insertMany([
+dbInstance.suppliers.insertMany([
   {
-    _id: bnHung,
-    patient_code: "BN-2026-000101",
-    national_id: "001202001111",
-    full_name: "Nguyễn Văn Hùng",
-    dob: new Date("1968-05-14"),
-    gender: "MALE",
-    phone: "0912345001",
-    registered_branch: "HN",
-    blood_type: "O+",
-    allergies: [{ allergen: "Penicillin", type: "DRUG", severity: "HIGH", reaction: "Khó thở sốc phản vệ" }]
+    _id: supHoaPhat,
+    supplier_code: "SUP-HPG-01",
+    company_name: "Tập đoàn Thép Hòa Phát (Hoa Phat Group)",
+    tax_id: "0900189284",
+    phone: "02439747755",
+    email: "contact@hoaphat.com.vn",
+    address: "66 Nguyễn Du, Hai Bà Trưng, Hà Nội",
+    rating_score: 9.6
   },
   {
-    _id: bnLan,
-    patient_code: "BN-2026-000102",
-    national_id: "001202002222",
-    full_name: "Trần Thị Lan",
-    dob: new Date("1982-11-20"),
-    gender: "FEMALE",
-    phone: "0912345002",
-    registered_branch: "HN",
-    blood_type: "A+",
-    allergies: []
+    _id: supCadivi,
+    supplier_code: "SUP-CDV-02",
+    company_name: "Công ty Cổ phần Dây Cáp Điện Việt Nam (CADIVI)",
+    tax_id: "0300381564",
+    phone: "02838299443",
+    email: "cadivi@cadivi.vn",
+    address: "70-72 Nam Kỳ Khởi Nghĩa, Quận 1, TP.HCM",
+    rating_score: 9.4
   },
   {
-    _id: bnTri,
-    patient_code: "BN-2026-000201",
-    national_id: "079202004444",
-    full_name: "Võ Minh Trí",
-    dob: new Date("1955-03-10"),
-    gender: "MALE",
-    phone: "0909123001",
-    registered_branch: "HCM",
-    blood_type: "AB+",
-    allergies: [{ allergen: "Aspirin", type: "DRUG", severity: "HIGH", reaction: "Xuất huyết tiêu hóa" }]
+    _id: supVicem,
+    supplier_code: "SUP-VCM-03",
+    company_name: "Tổng Công ty Xi măng Việt Nam (VICEM)",
+    tax_id: "0100105398",
+    phone: "02438512425",
+    email: "vicem@vicem.vn",
+    address: "228 Lê Duẩn, Đống Đa, Hà Nội",
+    rating_score: 9.1
+  },
+  {
+    _id: supJotun,
+    supplier_code: "SUP-JOTUN-04",
+    company_name: "Công ty TNHH Sơn Jotun Việt Nam",
+    tax_id: "0301445412",
+    phone: "02837404740",
+    email: "vietnam@jotun.com",
+    address: "KCN Sóng Thần 1, Dĩ An, Bình Dương",
+    rating_score: 9.3
   }
 ]);
 
-// 8. VACCINATIONS (Tiêm chủng)
-dbInstance.vaccinations.insertMany([
-  { vaccination_code: "VAC-2026-01", patient_id: bnLan, vaccine_name: "Cúm Mùa Vaxigrip Tetra", dose_number: NumberInt(1), batch_number: "LOT-VAX-2026", administered_date: new Date("2026-09-10"), hospital_branch: "HN", adverse_reaction: null }
+// 2. MATERIAL_CATEGORIES (Nhóm vật tư)
+dbInstance.material_categories.insertMany([
+  { category_code: "CAT-STEEL", name: "Thép và Kim loại kết cấu", description: "Thép cây vằn, thép hình I/H, tôn tấm", storage_condition: "DRY_VENTILATED" },
+  { category_code: "CAT-CABLE", name: "Thiết bị Điện & Cáp truyền tải", description: "Dây cáp điện trung/hạ thế, tủ điện", storage_condition: "DRY_VENTILATED" },
+  { category_code: "CAT-CEMENT", name: "Xi măng & Phụ gia bê tông", description: "Xi măng bao PCB40, xỉ hạt, tro bay", storage_condition: "DRY_VENTILATED" },
+  { category_code: "CAT-PAINT", name: "Hóa chất & Sơn công nghiệp", description: "Sơn Epoxy chống rỉ, dung môi, chất tẩy dầu", storage_condition: "HAZARDOUS" }
 ]);
 
-// 9. APPOINTMENTS (Đặt lịch khám)
-dbInstance.appointments.insertMany([
-  { appointment_code: "APT-20261015-01", patient_id: bnHung, doctor_id: bsTuan, department_id: deptHN_TimMach, scheduled_date: new Date("2026-10-15T09:00:00Z"), hospital_branch: "HN", status: "CONFIRMED" }
+// 3. WAREHOUSES (Danh mục Kho theo Chi nhánh Miền)
+dbInstance.warehouses.insertMany([
+  { warehouse_code: "WH-HN-01", name: "Tổng kho Vật tư Miền Bắc (Long Biên)", branch: "HN", address: "Cụm Công nghiệp Sài Đồng, Long Biên, Hà Nội", manager: "Nguyễn Văn Hùng", capacity_sqm: 12000, is_active: true },
+  { warehouse_code: "WH-HCM-01", name: "Tổng kho Vật tư Miền Nam (Cát Lái)", branch: "HCM", address: "Khu cảng Cát Lái, Phường Thạnh Mỹ Lợi, TP. Thủ Đức, TP.HCM", manager: "Lê Minh Trí", capacity_sqm: 18000, is_active: true },
+  { warehouse_code: "WH-DN-01", name: "Kho Vật tư Khu vực Miền Trung (Hòa Cầm)", branch: "DN", address: "KCN Hòa Cầm, Cẩm Lệ, TP. Đà Nẵng", manager: "Phan Đình Hoàng", capacity_sqm: 6000, is_active: true }
 ]);
 
-print(`[4/4] Tạo Bệnh án, Phẫu thuật, Giám sát ICU, Đơn thuốc, Viện phí, BHYT & Chuyển viện...`);
+// 4. STORAGE_LOCATIONS (Vị trí lưu trữ)
+dbInstance.storage_locations.insertMany([
+  { location_code: "HN-A1-R01-B01", warehouse_code: "WH-HN-01", aisle: "A1", rack: NumberInt(1), bin: NumberInt(1), max_weight_kg: 5000, is_occupied: true },
+  { location_code: "HN-B2-R03-B02", warehouse_code: "WH-HN-01", aisle: "B2", rack: NumberInt(3), bin: NumberInt(2), max_weight_kg: 2000, is_occupied: true },
+  { location_code: "HCM-C1-R01-B01", warehouse_code: "WH-HCM-01", aisle: "C1", rack: NumberInt(1), bin: NumberInt(1), max_weight_kg: 8000, is_occupied: true },
+  { location_code: "HCM-D3-R02-B04", warehouse_code: "WH-HCM-01", aisle: "D3", rack: NumberInt(2), bin: NumberInt(4), max_weight_kg: 1500, is_occupied: true }
+]);
 
-// 10. ENCOUNTERS (Bệnh án Đa hình - Khám bệnh)
-const encHungId = new ObjectId();
-const encTriId = new ObjectId();
-
-dbInstance.encounters.insertMany([
+// 5. MATERIALS (Danh mục Vật tư - Đa hình Polymorphic Specifications)
+dbInstance.materials.insertMany([
   {
-    _id: encHungId,
-    encounter_code: "ENC-20261010-001",
-    patient_id: bnHung,
-    doctor_id: bsTuan,
-    department_id: deptHN_TimMach,
-    hospital_branch: "HN",
-    encounter_type: "OUTPATIENT",
-    admission_time: new Date("2026-10-10T08:00:00Z"),
-    discharge_time: new Date("2026-10-10T10:30:00Z"),
-    reason_for_visit: "Đau thắt ngực khi gắng sức, hồi hộp",
-    vital_signs: { blood_pressure: "145/90", heart_rate: 88, temperature: 36.8, spO2: 98 },
-    specialized_examination: { specialty: "CARDIOLOGY", ecg_report: "Nhịp xoang nhanh, thiếu máu cơ tim", nyha_stage: "Class II" },
-    diagnosis: { primary_icd10: "I20.9", primary_name: "Cơn đau thắt ngực không đặc hiệu" },
-    status: "COMPLETED"
+    material_code: "MAT-STEEL-D20",
+    name: "Thép thanh vằn D20 CB400V Hòa Phát",
+    category_code: "CAT-STEEL",
+    unit: "Tấn",
+    description: "Thép cốt bê tông chịu lực cao cho móng và dầm cầu vượt",
+    specifications: {
+      standard: "TCVN 1651-2:2018",
+      diameter_mm: 20,
+      grade: "CB400V",
+      tensile_strength_mpa: 570,
+      material: "Thép hợp kim thấp carbon"
+    },
+    standard_price: 15500000,
+    barcode: "8934567890123",
+    is_active: true
   },
   {
-    _id: encTriId,
-    encounter_code: "ENC-20261011-001",
-    patient_id: bnTri,
-    doctor_id: bsKhang,
-    department_id: deptHCM_TimMach,
-    hospital_branch: "HCM",
-    encounter_type: "INPATIENT",
-    admission_time: new Date("2026-10-11T07:30:00Z"),
-    discharge_time: null,
-    reason_for_visit: "Khó thở kịch phát về đêm, phù hai chi dưới",
-    vital_signs: { blood_pressure: "160/100", heart_rate: 104, temperature: 36.9, spO2: 93 },
-    specialized_examination: { specialty: "CARDIOLOGY", echocardiogram: "EF = 38%, suy tim sung huyết", nyha_stage: "Class III" },
-    diagnosis: { primary_icd10: "I50.9", primary_name: "Suy tim sung huyết mất bù cấp" },
+    material_code: "MAT-CABLE-3X120",
+    name: "Cáp đồng trung thế 24kV treo CADIVI 3x120 mm2",
+    category_code: "CAT-CABLE",
+    unit: "Mét",
+    description: "Cáp ngầm trung thế cách điện XLPE, giáp băng kim loại",
+    specifications: {
+      voltage_kv: 24,
+      conductor: "Đồng 99.99%",
+      cores: 3,
+      cross_section_sqmm: 120,
+      standard: "IEC 60502-2",
+      material: "Đồng cách điện XLPE"
+    },
+    standard_price: 485000,
+    barcode: "8934567890456",
+    is_active: true
+  },
+  {
+    material_code: "MAT-CEM-PCB40",
+    name: "Xi măng Poóc lăng hỗn hợp Vicem Hoàng Thạch PCB40",
+    category_code: "CAT-CEMENT",
+    unit: "Bao (50kg)",
+    description: "Xi măng cường độ cao đóng bao 50kg chống thấm tốt",
+    specifications: {
+      standard: "TCVN 6260:2020",
+      strength_grade: "PCB40",
+      curing_days: 28,
+      package_weight_kg: 50
+    },
+    standard_price: 92000,
+    barcode: "8934567890789",
+    is_active: true
+  },
+  {
+    material_code: "MAT-PAINT-EPX01",
+    name: "Sơn Epoxy lót 2 thành phần chống rỉ Jotun Penguard Primer",
+    category_code: "CAT-PAINT",
+    unit: "Thùng (20L)",
+    description: "Sơn bảo vệ kết cấu thép ngâm nước và chịu môi trường biển khắc nghiệt",
+    specifications: {
+      base: "Epoxy Resin polyamide",
+      solid_volume_pct: 72,
+      pot_life_hours: 8,
+      voc_g_l: 250,
+      standard: "ISO 12944 C5-M"
+    },
+    standard_price: 3200000,
+    barcode: "8934567890999",
+    is_active: true
+  }
+]);
+
+// 6. PROJECTS_DEPARTMENTS (Dự án & Công trình tiêu thụ)
+const projCaoToc = new ObjectId();
+const projNhaMay = new ObjectId();
+const projCauCan = new ObjectId();
+
+dbInstance.projects_departments.insertMany([
+  {
+    _id: projCaoToc,
+    project_code: "PRJ-EXPRESS-01",
+    name: "Dự án Cao tốc Bắc Nam (Đoạn Mai Sơn - QL45)",
+    department_type: "CONSTRUCTION",
+    manager: "Kỹ sư Trần Anh Quân",
+    branch: "HN",
+    allocated_budget: 150000000000,
+    status: "IN_PROGRESS"
+  },
+  {
+    _id: projNhaMay,
+    project_code: "PRJ-PLANT-HCM",
+    name: "Dự án Tổ hợp Nhà máy Điện Gió ngoài khơi Cần Giờ",
+    department_type: "PRODUCTION",
+    manager: "Kỹ sư Hoàng Minh Đức",
+    branch: "HCM",
+    allocated_budget: 85000000000,
+    status: "IN_PROGRESS"
+  },
+  {
+    _id: projCauCan,
+    project_code: "PRJ-FLYOVER-03",
+    name: "Công trình Nâng cấp Tuyến Metro số 1 Bến Thành - Suối Tiên",
+    department_type: "CONSTRUCTION",
+    manager: "Kỹ sư Đặng Quốc Huy",
+    branch: "HCM",
+    allocated_budget: 65000000000,
     status: "IN_PROGRESS"
   }
 ]);
 
-// 11. LAB_TESTS (Xét nghiệm)
-dbInstance.lab_tests.insertMany([
-  { test_code: "LAB-20261010-001", encounter_id: encHungId, patient_id: bnHung, hospital_branch: "HN", test_category: "SINH_HOA_TIM_MACH", parameters: [{ name: "Troponin T hs", value: 0.038, unit: "ng/mL", flag: "CRITICAL" }], status: "VERIFIED" }
+print(`[3/4] Nạp Đơn mua hàng, Hợp đồng, Lô sản xuất, Kiểm định và Yêu cầu cấp phát...`);
+
+// 7. PURCHASE_ORDERS (Đơn đặt mua từ NCC)
+const po1HN = new ObjectId();
+const po2HCM = new ObjectId();
+
+dbInstance.purchase_orders.insertMany([
+  {
+    _id: po1HN,
+    po_code: "PO-2026-HN-001",
+    supplier_id: supHoaPhat,
+    warehouse_branch: "HN",
+    order_date: new Date("2026-10-01"),
+    expected_delivery_date: new Date("2026-10-10"),
+    total_amount: 1550000000,
+    items: [
+      { material_code: "MAT-STEEL-D20", quantity: NumberInt(100), unit_price: 15500000, amount: 1550000000 }
+    ],
+    status: "DELIVERED"
+  },
+  {
+    _id: po2HCM,
+    po_code: "PO-2026-HCM-002",
+    supplier_id: supCadivi,
+    warehouse_branch: "HCM",
+    order_date: new Date("2026-10-05"),
+    expected_delivery_date: new Date("2026-10-15"),
+    total_amount: 970000000,
+    items: [
+      { material_code: "MAT-CABLE-3X120", quantity: NumberInt(2000), unit_price: 485000, amount: 970000000 }
+    ],
+    status: "DELIVERED"
+  }
 ]);
 
-// 12. SURGICAL_OPERATIONS (Ca phẫu thuật)
-dbInstance.surgical_operations.insertMany([
-  { surgery_code: "SURG-20261011-01", encounter_id: encTriId, patient_id: bnTri, hospital_branch: "HCM", lead_surgeon_id: bsKhang, operating_room: "Phòng mổ Tim mạch OR-3", procedure_name: "Đặt Stent động mạch vành qua da (PCI)", anesthesia_type: "LOCAL", start_time: new Date("2026-10-11T13:00:00Z"), end_time: new Date("2026-10-11T14:30:00Z"), status: "COMPLETED" }
+// 8. SUPPLIER_CONTRACTS (Hợp đồng nguyên tắc)
+dbInstance.supplier_contracts.insertMany([
+  { contract_code: "CTR-HPG-2026", supplier_id: supHoaPhat, start_date: new Date("2026-01-01"), end_date: new Date("2028-12-31"), contract_value: 50000000000, payment_terms: "Thanh toán theo đợt 30 ngày sau nghiệm thu", status: "ACTIVE" },
+  { contract_code: "CTR-CDV-2026", supplier_id: supCadivi, start_date: new Date("2026-03-01"), end_date: new Date("2027-12-31"), contract_value: 30000000000, payment_terms: "Thanh toán trong vòng 45 ngày", status: "ACTIVE" }
 ]);
 
-// 13. PATIENT_VITALS_TELEMETRY (Giám sát ICU Thời gian thực)
-dbInstance.patient_vitals_telemetry.insertMany([
-  { patient_id: bnTri, hospital_branch: "HCM", bed_number: "G-ICU-02", recorded_at: new Date("2026-10-11T08:00:00Z"), heart_rate_bpm: 102, spO2_percent: 94, mean_arterial_pressure: 110, respiratory_rate: 22, is_alert_triggered: true },
-  { patient_id: bnTri, hospital_branch: "HCM", bed_number: "G-ICU-02", recorded_at: new Date("2026-10-11T08:05:00Z"), heart_rate_bpm: 98, spO2_percent: 96, mean_arterial_pressure: 105, respiratory_rate: 20, is_alert_triggered: false }
+// 9. SUPPLIER_EVALUATIONS (Đánh giá SLA NCC)
+dbInstance.supplier_evaluations.insertMany([
+  { supplier_id: supHoaPhat, period: "2026-Q3", quality_score: 98, delivery_score: 95, overall_score: 96.5, comments: "Chất lượng thép đồng đều, CO/CQ đầy đủ chuẩn quốc tế", evaluated_at: new Date("2026-10-01") },
+  { supplier_id: supCadivi, period: "2026-Q3", quality_score: 95, delivery_score: 93, overall_score: 94.0, comments: "Dây cáp chịu tải thử nghiệm đạt 100% yêu cầu", evaluated_at: new Date("2026-10-02") }
 ]);
 
-// 14. INPATIENT_ADMISSIONS (Điều trị Nội trú)
-dbInstance.inpatient_admissions.insertMany([
-  { admission_code: "ADM-20261011-001", patient_id: bnTri, department_id: deptHCM_TimMach, hospital_branch: "HCM", room_number: "P. Hồi Sức 502", bed_number: "G-03", admission_date: new Date("2026-10-11T08:30:00Z"), status: "CURRENTLY_ADMITTED" }
+// 10. MATERIAL_BATCHES (Lô vật tư & Chứng chỉ CO/CQ)
+dbInstance.material_batches.insertMany([
+  { batch_number: "BATCH-HP-2610A", material_code: "MAT-STEEL-D20", mfg_date: new Date("2026-09-25"), exp_date: null, co_cq_number: "CO-CQ-HP-99812", origin_country: "Việt Nam", inspection_status: "PASSED" },
+  { batch_number: "BATCH-CDV-2610B", material_code: "MAT-CABLE-3X120", mfg_date: new Date("2026-09-28"), exp_date: null, co_cq_number: "CO-CQ-CDV-44120", origin_country: "Việt Nam", inspection_status: "PASSED" },
+  { batch_number: "BATCH-JT-2609C", material_code: "MAT-PAINT-EPX01", mfg_date: new Date("2026-08-15"), exp_date: new Date("2027-08-15"), co_cq_number: "CO-CQ-JT-12901", origin_country: "Na Uy / VN", inspection_status: "PASSED" }
 ]);
 
-// 15. PRESCRIPTIONS (Đơn thuốc)
-dbInstance.prescriptions.insertMany([
-  { prescription_code: "RX-20261010-001", encounter_id: encHungId, patient_id: bnHung, hospital_branch: "HN", items: [{ drug_id: medAmlor, drug_name: "Amlor 5mg", quantity: NumberInt(30), unit_price: 6500, subtotal: 195000 }], total_amount: 195000, dispensing_status: "DISPENSED" }
+// 11. QUALITY_INSPECTIONS (Biên bản kiểm định QC)
+dbInstance.quality_inspections.insertMany([
+  { inspection_code: "QC-2026-001", material_code: "MAT-STEEL-D20", batch_number: "BATCH-HP-2610A", sample_size: NumberInt(10), defect_count: NumberInt(0), test_criteria: ["Độ bền kéo", "Độ giãn dài", "Thử uốn lạnh"], result: "PASSED", inspector: "Vũ Hải Đăng", inspected_date: new Date("2026-10-08") },
+  { inspection_code: "QC-2026-002", material_code: "MAT-CABLE-3X120", batch_number: "BATCH-CDV-2610B", sample_size: NumberInt(5), defect_count: NumberInt(0), test_criteria: ["Điện trở ruột dẫn", "Thử điện áp cao tần 35kV"], result: "PASSED", inspector: "Lê Quốc Trọng", inspected_date: new Date("2026-10-12") }
 ]);
 
-// 16. INVOICES (Hóa đơn viện phí)
-const invHungId = new ObjectId();
-dbInstance.invoices.insertMany([
-  { _id: invHungId, invoice_code: "INV-20261010-001", encounter_id: encHungId, patient_id: bnHung, hospital_branch: "HN", total_gross_amount: 755000, insurance_coverage_amount: 604000, patient_copay_amount: 151000, payment_status: "PAID" }
+// 12. MATERIAL_REQUESTS (Phiếu yêu cầu cấp phát vật tư)
+dbInstance.material_requests.insertMany([
+  {
+    request_code: "REQ-2026-001",
+    project_id: projCaoToc,
+    warehouse_branch: "HN",
+    urgency: "HIGH",
+    items: [{ material_code: "MAT-STEEL-D20", requested_qty: NumberInt(40), approved_qty: NumberInt(40) }],
+    requested_by: "Kỹ sư Trần Anh Quân",
+    requested_date: new Date("2026-10-10"),
+    status: "APPROVED"
+  },
+  {
+    request_code: "REQ-2026-002",
+    project_id: projNhaMay,
+    warehouse_branch: "HCM",
+    urgency: "NORMAL",
+    items: [{ material_code: "MAT-CABLE-3X120", requested_qty: NumberInt(800), approved_qty: NumberInt(800) }],
+    requested_by: "Kỹ sư Hoàng Minh Đức",
+    requested_date: new Date("2026-10-11"),
+    status: "APPROVED"
+  }
 ]);
 
-// 17. INSURANCE_CLAIMS (Giám định BHYT)
-dbInstance.insurance_claims.insertMany([
-  { claim_code: "CLAIM-20261010-01", invoice_id: invHungId, patient_id: bnHung, hospital_branch: "HN", claimed_amount: 604000, approved_amount: 604000, rejection_reason: null, submission_date: new Date("2026-10-10T12:00:00Z"), status: "APPROVED" }
+print(`[4/4] Nạp Giao dịch Nhập/Xuất kho, Tồn kho Phân tán (Sharded), Kiểm kê & Nhật ký...`);
+
+// 13. INVENTORY_STOCKS ⭐ (Tồn kho phân mảnh theo Chi nhánh Kho)
+dbInstance.inventory_stocks.insertMany([
+  // Chi nhánh Hà Nội (ZONE_HN)
+  {
+    warehouse_branch: "HN",
+    warehouse_code: "WH-HN-01",
+    material_code: "MAT-STEEL-D20",
+    quantity: NumberInt(85),
+    allocated_quantity: NumberInt(40),
+    available_quantity: NumberInt(45),
+    min_threshold: NumberInt(20),
+    max_threshold: NumberInt(200),
+    unit: "Tấn",
+    last_updated: new Date("2026-10-15")
+  },
+  {
+    warehouse_branch: "HN",
+    warehouse_code: "WH-HN-01",
+    material_code: "MAT-CEM-PCB40",
+    quantity: NumberInt(12), // Cảnh báo: dưới ngưỡng min_threshold (50 bao)!
+    allocated_quantity: NumberInt(0),
+    available_quantity: NumberInt(12),
+    min_threshold: NumberInt(50),
+    max_threshold: NumberInt(500),
+    unit: "Bao (50kg)",
+    last_updated: new Date("2026-10-15")
+  },
+  // Chi nhánh TP.HCM (ZONE_HCM)
+  {
+    warehouse_branch: "HCM",
+    warehouse_code: "WH-HCM-01",
+    material_code: "MAT-CABLE-3X120",
+    quantity: NumberInt(1800),
+    allocated_quantity: NumberInt(800),
+    available_quantity: NumberInt(1000),
+    min_threshold: NumberInt(300),
+    max_threshold: NumberInt(5000),
+    unit: "Mét",
+    last_updated: new Date("2026-10-15")
+  },
+  {
+    warehouse_branch: "HCM",
+    warehouse_code: "WH-HCM-01",
+    material_code: "MAT-PAINT-EPX01",
+    quantity: NumberInt(8), // Cảnh báo: dưới ngưỡng min_threshold (20 thùng)!
+    allocated_quantity: NumberInt(0),
+    available_quantity: NumberInt(8),
+    min_threshold: NumberInt(20),
+    max_threshold: NumberInt(150),
+    unit: "Thùng (20L)",
+    last_updated: new Date("2026-10-15")
+  }
 ]);
 
-// 18. HOSPITAL_TRANSFERS (Chuyển viện Cấp cứu 115)
-dbInstance.hospital_transfers.insertMany([
-  { transfer_code: "TRANS-20261011-01", patient_id: bnTri, source_branch: "HCM", target_hospital: "Bệnh viện Chợ Rẫy", ambulance_plate: "51B-115.89", transfer_reason: "Hỗ trợ tim phổi nhân tạo chuyên sâu (ECMO)", transfer_time: new Date("2026-10-11T16:00:00Z"), status: "DELIVERED" }
+// 14. GOODS_RECEIPTS ⭐ (Phiếu Nhập kho - Phân tán theo Chi nhánh)
+dbInstance.goods_receipts.insertMany([
+  {
+    receipt_code: "GR-HN-2026-001",
+    warehouse_branch: "HN",
+    warehouse_code: "WH-HN-01",
+    supplier_id: supHoaPhat,
+    po_code: "PO-2026-HN-001",
+    receipt_date: new Date("2026-10-09"),
+    items: [
+      { material_code: "MAT-STEEL-D20", batch_number: "BATCH-HP-2610A", quantity: NumberInt(100), unit_price: 15500000, amount: 1550000000 }
+    ],
+    total_amount: 1550000000,
+    receiver: "Thủ kho Nguyễn Văn Hùng",
+    status: "COMPLETED"
+  },
+  {
+    receipt_code: "GR-HCM-2026-002",
+    warehouse_branch: "HCM",
+    warehouse_code: "WH-HCM-01",
+    supplier_id: supCadivi,
+    po_code: "PO-2026-HCM-002",
+    receipt_date: new Date("2026-10-13"),
+    items: [
+      { material_code: "MAT-CABLE-3X120", batch_number: "BATCH-CDV-2610B", quantity: NumberInt(2000), unit_price: 485000, amount: 970000000 }
+    ],
+    total_amount: 970000000,
+    receiver: "Thủ kho Lê Minh Trí",
+    status: "COMPLETED"
+  }
 ]);
 
-// 19. PATIENT_FEEDBACKS (Đánh giá Hài lòng)
-dbInstance.patient_feedbacks.insertMany([
-  { patient_id: bnHung, hospital_branch: "HN", rating_score: NumberInt(5), category: "DOCTOR_ATTITUDE", comment: "Bác sĩ Tuấn giải thích bệnh tình rất chu đáo và tận tình.", created_at: new Date("2026-10-10T11:00:00Z") }
+// 15. GOODS_ISSUES ⭐ (Phiếu Xuất kho - Phân tán theo Chi nhánh)
+dbInstance.goods_issues.insertMany([
+  {
+    issue_code: "GI-HN-2026-001",
+    warehouse_branch: "HN",
+    warehouse_code: "WH-HN-01",
+    project_id: projCaoToc,
+    request_code: "REQ-2026-001",
+    issue_date: new Date("2026-10-11"),
+    items: [
+      { material_code: "MAT-STEEL-D20", batch_number: "BATCH-HP-2610A", quantity: NumberInt(15) }
+    ],
+    purpose: "Đổ bê tông dầm cầu cạn km45 thuộc Cao tốc Bắc Nam",
+    issuer: "Thủ kho Nguyễn Văn Hùng",
+    recipient: "Tổ trưởng thi công Vũ Mạnh Tuấn",
+    status: "DELIVERED"
+  },
+  {
+    issue_code: "GI-HCM-2026-002",
+    warehouse_branch: "HCM",
+    warehouse_code: "WH-HCM-01",
+    project_id: projNhaMay,
+    request_code: "REQ-2026-002",
+    issue_date: new Date("2026-10-14"),
+    items: [
+      { material_code: "MAT-CABLE-3X120", batch_number: "BATCH-CDV-2610B", quantity: NumberInt(200) }
+    ],
+    purpose: "Đấu nối tuyến cáp ngầm trạm biến áp 110kV Cần Giờ",
+    issuer: "Thủ kho Lê Minh Trí",
+    recipient: "Chỉ huy trưởng Nguyễn Bá Lộc",
+    status: "DELIVERED"
+  }
 ]);
 
-// 20. MEDICAL_AUDIT_LOGS (Nhật ký Truy vết Bảo mật)
-dbInstance.medical_audit_logs.insertMany([
-  { timestamp: new Date("2026-10-10T08:05:00Z"), action: "READ_RECORD", staff_id: bsTuan, patient_id: bnHung, encounter_id: encHungId },
-  { timestamp: new Date("2026-10-10T10:15:00Z"), action: "PRESCRIBE_DRUG", staff_id: bsTuan, patient_id: bnHung, encounter_id: encHungId }
+// 16. STOCK_TRANSFERS (Điều chuyển vật tư liên kho giữa HN và HCM)
+dbInstance.stock_transfers.insertMany([
+  {
+    transfer_code: "TRF-2026-001",
+    from_branch: "HN",
+    to_branch: "HCM",
+    from_warehouse: "WH-HN-01",
+    to_warehouse: "WH-HCM-01",
+    transfer_date: new Date("2026-10-14"),
+    items: [
+      { material_code: "MAT-STEEL-D20", quantity: NumberInt(10), unit: "Tấn" }
+    ],
+    transport_method: "Vận chuyển đường sắt container liên vận",
+    status: "IN_TRANSIT"
+  }
+]);
+
+// 17. MATERIAL_RETURNS (Thu hồi vật tư từ công trình)
+dbInstance.material_returns.insertMany([
+  {
+    return_code: "RET-2026-001",
+    warehouse_branch: "HN",
+    warehouse_code: "WH-HN-01",
+    project_id: projCaoToc,
+    return_date: new Date("2026-10-13"),
+    items: [
+      { material_code: "MAT-STEEL-D20", quantity: NumberInt(1), condition: "Nguyên vẹn" }
+    ],
+    reason: "EXCESS_MATERIAL",
+    accepted_by: "Thủ kho Nguyễn Văn Hùng"
+  }
+]);
+
+// 18. STOCKTAKES (Kiểm kê đối soát thực tế)
+dbInstance.stocktakes.insertMany([
+  {
+    stocktake_code: "ST-HN-2026-10",
+    warehouse_branch: "HN",
+    warehouse_code: "WH-HN-01",
+    check_date: new Date("2026-10-15"),
+    auditor: "Ban Kiểm toán Nội bộ - Đỗ Thu Hương",
+    items: [
+      { material_code: "MAT-STEEL-D20", system_qty: NumberInt(85), actual_qty: NumberInt(85), variance: NumberInt(0), explanation: "Khớp 100% thẻ kho" },
+      { material_code: "MAT-CEM-PCB40", system_qty: NumberInt(12), actual_qty: NumberInt(12), variance: NumberInt(0), explanation: "Bao bì nguyên vẹn, không vón cục" }
+    ],
+    status: "BALANCED"
+  }
+]);
+
+// 19. INVENTORY_VALUATIONS (Định giá tài sản tồn kho)
+dbInstance.inventory_valuations.insertMany([
+  {
+    valuation_code: "VAL-HN-2026-10",
+    period: "2026-10",
+    warehouse_branch: "HN",
+    total_stock_value: 1318540000,
+    valuation_method: "FIFO",
+    created_at: new Date("2026-10-15")
+  },
+  {
+    valuation_code: "VAL-HCM-2026-10",
+    period: "2026-10",
+    warehouse_branch: "HCM",
+    total_stock_value: 898600000,
+    valuation_method: "FIFO",
+    created_at: new Date("2026-10-15")
+  }
+]);
+
+// 20. MATERIAL_AUDIT_LOGS (Nhật ký truy vết bảo mật)
+dbInstance.material_audit_logs.insertMany([
+  {
+    log_code: "AUD-2026-0001",
+    action: "RECEIVE",
+    actor: "user_hung_nv",
+    collection_name: "goods_receipts",
+    document_id: "GR-HN-2026-001",
+    details: { receipt_amount: 1550000000, material: "MAT-STEEL-D20", qty: 100 },
+    timestamp: new Date("2026-10-09T08:30:00Z")
+  },
+  {
+    log_code: "AUD-2026-0002",
+    action: "ISSUE",
+    actor: "user_hung_nv",
+    collection_name: "goods_issues",
+    document_id: "GI-HN-2026-001",
+    details: { project: "PRJ-EXPRESS-01", material: "MAT-STEEL-D20", qty: 15 },
+    timestamp: new Date("2026-10-11T14:15:00Z")
+  },
+  {
+    log_code: "AUD-2026-0003",
+    action: "RECEIVE",
+    actor: "user_tri_lm",
+    collection_name: "goods_receipts",
+    document_id: "GR-HCM-2026-002",
+    details: { receipt_amount: 970000000, material: "MAT-CABLE-3X120", qty: 2000 },
+    timestamp: new Date("2026-10-13T10:00:00Z")
+  }
 ]);
 
 print(`======================================================================`);
-print(`✔ NẠP DỮ LIỆU THÀNH CÔNG CHO TẤT CẢ 20 COLLECTIONS!`);
-allCollections.forEach(col => {
-  print(`  - ${col.padEnd(26)}: ${dbInstance.getCollection(col).countDocuments()} bản ghi`);
-});
+print(`[KẾT QUẢ] ĐÃ NẠP DỮ LIỆU MẪU ĐẦY ĐỦ CHO TOÀN BỘ 20 COLLECTIONS!`);
+print(`- Nhà cung cấp: ${dbInstance.suppliers.countDocuments()} bản ghi`);
+print(`- Danh mục vật tư: ${dbInstance.materials.countDocuments()} bản ghi`);
+print(`- Kho bãi & Vị trí: ${dbInstance.warehouses.countDocuments()} kho, ${dbInstance.storage_locations.countDocuments()} vị trí kệ`);
+print(`- Tồn kho phân tán: ${dbInstance.inventory_stocks.countDocuments()} bản ghi`);
+print(`- Phiếu Nhập / Xuất: ${dbInstance.goods_receipts.countDocuments()} nhập, ${dbInstance.goods_issues.countDocuments()} xuất`);
+print(`- Dự án & Yêu cầu: ${dbInstance.projects_departments.countDocuments()} dự án, ${dbInstance.material_requests.countDocuments()} yêu cầu cấp`);
 print(`======================================================================`);
